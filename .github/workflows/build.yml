@@ -1,0 +1,46 @@
+name: Build Sinners base image
+on:
+  workflow_dispatch:
+  push:
+  schedule:
+    - cron: 0 0 * * * # auto-update will pull at 2am
+
+jobs:
+  build:
+    name: Build Sinners bootc image
+    runs-on: ubuntu-latest
+    env:
+      IMAGE_NAME: sinners-bootc
+      REGISTRY: ghcr.io/andybrwr
+
+    steps:
+      - name: Get current date
+        id: date
+        run: echo "::set-output name=date::$(date +'%Y%m%d')"
+
+      - name: Clone the repository
+        uses: actions/checkout@v4
+
+      - name: Build with buildah
+        id: build-image
+        uses: redhat-actions/buildah-build@v2
+        with:
+          image: ${{ env.IMAGE_NAME }}
+          tags: latest ${{ github.sha }} ${{ steps.date.outputs.date }}
+          containerfiles:
+            ./Containerfile
+
+      - name: Log in to ghcr
+        uses: redhat-actions/podman-login@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to ghcr
+        id: push-to-ghcr
+        uses: redhat-actions/push-to-registry@v2
+        with:
+          image: ${{ steps.build-image.outputs.image }}
+          tags: ${{ steps.build-image.outputs.tags }}
+          registry: ${{ env.REGISTRY }}
