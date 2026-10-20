@@ -10,3 +10,6 @@ RUN dnf -y install --allowerasing fuse fuse-libs steam tailscale \
 				   gstreamer1-vaapi intel-media-driver
 
 COPY etc/ /etc/
+COPY usr/ /usr/
+
+RUN systemctl enable bootc-fetch-apply-updates.timer
