@@ -22,8 +22,14 @@ jobs:
         id: date
         run: echo "::set-output name=date::$(date +'%Y%m%d')"
 
-      - name: Delete tools cache
-        run: rm -rf /opt/hostedtoolcache
+      - name: Free disk space
+        run: |
+          sudo rm -rf /opt/hostedtoolcache /usr/share/dotnet /usr/local/lib/android \
+            /opt/ghc /usr/local/.ghcup /usr/share/swift /usr/local/share/boost \
+            /usr/local/share/powershell /usr/local/share/chromium /usr/lib/jvm \
+            /opt/microsoft /opt/google /usr/local/lib/node_modules
+          sudo docker image prune -af
+          sudo mkdir -p /mnt/chunkah && sudo chown "$USER" /mnt/chunkah
 
       - name: Clone the repository
         uses: actions/checkout@v4
@@ -36,6 +42,28 @@ jobs:
           tags: latest ${{ github.sha }} ${{ steps.date.outputs.date }}
           containerfiles:
             ./Containerfile
+
+      - name: Rechunk with chunkah
+        env:
+          IMG: localhost/${{ env.IMAGE_NAME }}:latest
+          # keep podman's temp copies off the root disk
+          TMPDIR: /mnt/chunkah
+        run: |
+          orig=$(podman image inspect --format '{{.Id}}' $IMG)
+          podman run --rm --rmi \
+            --mount=type=image,src=$IMG,dst=/chunkah \
+            -e CHUNKAH_CONFIG_STR="$(podman inspect $IMG)" \
+            quay.io/fedora/fedora-bootc:44 \
+            /usr/libexec/bootc-base-imagectl rechunk --chunkah --max-layers 96 \
+            > /mnt/chunkah/rechunked.ociarchive
+          # drop the original build before importing so both aren't stored at once
+          podman rmi -f "$orig"
+          id=$(podman load -i /mnt/chunkah/rechunked.ociarchive | sed -n 's/^Loaded image: //p')
+          rm -f /mnt/chunkah/rechunked.ociarchive
+          test -n "$id"
+          for tag in ${{ steps.build-image.outputs.tags }}; do
+            podman tag "$id" "localhost/${{ env.IMAGE_NAME }}:$tag"
+          done
 
       - name: Log in to ghcr
         uses: redhat-actions/podman-login@v1
