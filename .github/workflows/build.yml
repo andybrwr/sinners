@@ -9,6 +9,10 @@ jobs:
   build:
     name: Build Sinners bootc image
     runs-on: ubuntu-latest
+    environment: Build
+    permissions:
+      contents: read
+      packages: write
     env:
       IMAGE_NAME: sinners-bootc
       REGISTRY: ghcr.io/andybrwr
@@ -42,8 +46,20 @@ jobs:
 
       - name: Push to ghcr
         id: push-to-ghcr
-        uses: redhat-actions/push-to-registry@v2
+        uses: redhat-actions/push-to-registry@v3
         with:
           image: ${{ steps.build-image.outputs.image }}
           tags: ${{ steps.build-image.outputs.tags }}
           registry: ${{ env.REGISTRY }}
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image
+        env:
+          COSIGN_PRIVATE_KEY: ${{ secrets.COSIGN_PRIVATE_KEY }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASS }}
+          DIGEST: ${{ steps.push-to-ghcr.outputs.digest }}
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | cosign login ghcr.io -u ${{ github.actor }} --password-stdin
+          cosign sign --yes --key env://COSIGN_PRIVATE_KEY ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${DIGEST}
