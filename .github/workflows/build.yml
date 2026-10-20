@@ -18,12 +18,15 @@ jobs:
         id: date
         run: echo "::set-output name=date::$(date +'%Y%m%d')"
 
+      - name: Delete tools cache
+        run: rm -rf /opt/hostedtoolcache
+
       - name: Clone the repository
         uses: actions/checkout@v4
 
       - name: Build with buildah
         id: build-image
-        uses: redhat-actions/buildah-build@v2
+        uses: redhat-actions/buildah-build@v3
         with:
           image: ${{ env.IMAGE_NAME }}
           tags: latest ${{ github.sha }} ${{ steps.date.outputs.date }}
