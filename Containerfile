@@ -9,9 +9,11 @@ RUN     dnf5 -y config-manager addrepo --overwrite --from-repofile=https://pkgs.
 RUN dnf -y install --allowerasing fuse fuse-libs steam tailscale \
 				   neovim obs-studio steam-devices \
 				   wl-clipboard ffmpeg gstreamer1 \
-				   gstreamer1-vaapi intel-media-driver
+				   intel-media-driver
 
 COPY etc/ /etc/
 COPY usr/ /usr/
 
 RUN systemctl enable bootc-fetch-apply-updates.timer
+
+RUN dnf clean all && rm -rf /var/cache/libdnf5 /var/log/dnf5.log* && bootc container lint

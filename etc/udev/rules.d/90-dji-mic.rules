@@ -1,0 +1,2 @@
+# prevent dji mic from keeping pc awake when plugged in
+ACTION=="add", SUBSYSTEM=="usb", ATTR{idVendor}=="2ca3", ATTR{idProduct}=="4015", ATTR{power/wakeup}="disabled"
