@@ -4,12 +4,14 @@ RUN dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-re
 
 RUN dnf -y install --nogpgcheck --repofrompath 'terra,https://repos.fyralabs.com/terra$releasever' terra-release terra-release-extras terra-release-mesa
 
-RUN     dnf5 -y config-manager addrepo --overwrite --from-repofile=https://pkgs.tailscale.com/stable/fedora/tailscale.repo
+RUN dnf5 -y config-manager addrepo --overwrite --from-repofile=https://pkgs.tailscale.com/stable/fedora/tailscale.repo
 
 RUN dnf -y install --allowerasing fuse fuse-libs steam tailscale \
 				   neovim obs-studio steam-devices \
 				   wl-clipboard ffmpeg gstreamer1 \
-				   intel-media-driver
+				   intel-media-driver fastfetch ladspa-caps-plugins \
+                   ladspa-swh-plugins lsp-plugins-ladspa neovim \
+                   qv4l2
 
 COPY etc/ /etc/
 COPY usr/ /usr/
