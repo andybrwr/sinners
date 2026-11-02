@@ -11,7 +11,7 @@ RUN dnf -y install --allowerasing fuse fuse-libs steam tailscale \
 				   wl-clipboard ffmpeg gstreamer1 \
 				   intel-media-driver fastfetch ladspa-caps-plugins \
                    ladspa-swh-plugins lsp-plugins-ladspa neovim \
-                   qv4l2
+                   qv4l2 intel-compute-runtime ocl-icd
 
 COPY etc/ /etc/
 COPY usr/ /usr/
