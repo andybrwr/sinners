@@ -12,7 +12,7 @@ RUN dnf -y install --allowerasing fuse fuse-libs steam tailscale \
 				   intel-media-driver fastfetch ladspa-caps-plugins \
                    ladspa-swh-plugins lsp-plugins-ladspa neovim \
                    qv4l2 intel-compute-runtime ocl-icd \
-				   apr apr-util zlib-ng
+				   apr apr-util zlib-ng zlib-ng-compat
 
 COPY etc/ /etc/
 COPY usr/ /usr/
