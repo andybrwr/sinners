@@ -15,6 +15,15 @@
                     }
                 }
             ],
+            "ghcr.io/andybrwr/sinners-gaming-bootc": [
+                {
+                    "type": "sigstoreSigned",
+                    "keyPath": "/etc/pki/containers/sinners.pub",
+                    "signedIdentity": {
+                        "type": "matchRepository"
+                    }
+                }
+            ],
             "": [
                 {
                     "type": "insecureAcceptAnything"

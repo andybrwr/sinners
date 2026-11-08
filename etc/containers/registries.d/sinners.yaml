@@ -1,3 +1,5 @@
 docker:
   ghcr.io/andybrwr/sinners-bootc:
     use-sigstore-attachments: true
+  ghcr.io/andybrwr/sinners-gaming-bootc:
+    use-sigstore-attachments: true

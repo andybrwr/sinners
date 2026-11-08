@@ -1,4 +1,4 @@
-name: Build Sinners base image
+name: Build Sinners images
 on:
   workflow_dispatch:
   push:
@@ -7,14 +7,22 @@ on:
 
 jobs:
   build:
-    name: Build Sinners bootc image
+    name: Build ${{ matrix.image }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: sinners-bootc
+            target: sinners
+          - image: sinners-gaming-bootc
+            target: sinners-gaming
     environment: Build
     permissions:
       contents: read
       packages: write
     env:
-      IMAGE_NAME: sinners-bootc
+      IMAGE_NAME: ${{ matrix.image }}
       REGISTRY: ghcr.io/andybrwr
 
     steps:
@@ -33,6 +41,7 @@ jobs:
           tags: latest ${{ github.sha }} ${{ steps.date.outputs.date }}
           containerfiles:
             ./Containerfile
+          extra-args: --target ${{ matrix.target }}
 
       - name: Log in to ghcr
         uses: redhat-actions/podman-login@v1
