@@ -17,15 +17,32 @@ RUN dnf -y install --allowerasing fuse fuse-libs steam tailscale \
 COPY etc/ /etc/
 COPY usr/ /usr/
 
+# Custom image name for fetch tools. Only touch display fields; ID/VERSION_ID/etc. must stay Fedora's.
+RUN sed -i \
+      -e "s/^PRETTY_NAME=.*/PRETTY_NAME=\"Sinners $(rpm -E %fedora))\"/" \
+      -e 's/^VARIANT=.*/VARIANT="Sinners"/' \
+      /usr/lib/os-release && \
+    echo 'IMAGE_ID="sinners"' >> /usr/lib/os-release
+
 RUN systemctl enable bootc-fetch-apply-updates.timer
 
 RUN dnf clean all && rm -rf /var/cache/libdnf5 /var/log/dnf5.log* && bootc container lint
 
 FROM quay.io/fedora/fedora:44 AS xrizer
-ARG XRIZER_VERSION=v0.6
-ADD --checksum=sha256:9b2105433e48a20f789e20a14113dbd98650afd116bd232419725a4438dd2149 \
-    https://github.com/Supreeeme/xrizer/releases/download/${XRIZER_VERSION}/xrizer-${XRIZER_VERSION}.zip /tmp/xrizer.zip
-RUN dnf -y install unzip && unzip -q /tmp/xrizer.zip -d /tmp/out && mv /tmp/out/xrizer-${XRIZER_VERSION} /xrizer
+# Nightly: artifact from the latest successful CI run on xrizer's main branch.
+# The GitHub API gives the run and the artifact's sha256; nightly.link serves the
+# artifact without auth, and the download is checked against GitHub's digest.
+RUN dnf -y install jq unzip && \
+    api=https://api.github.com/repos/Supreeeme/xrizer/actions && \
+    run=$(curl -fsSL "$api/workflows/ci.yml/runs?branch=main&event=push&status=success&per_page=1" | jq -er '.workflow_runs[0].id') && \
+    artifact=$(curl -fsSL "$api/runs/$run/artifacts?name=xrizer-nightly-release" | jq -ec '.artifacts[0]') && \
+    sha=$(jq -er '.workflow_run.head_sha' <<<"$artifact") && \
+    digest=$(jq -er '.digest | sub("^sha256:"; "")' <<<"$artifact") && \
+    echo "xrizer nightly: run $run, commit $sha" && \
+    curl -fsSL -o /tmp/xrizer.zip "https://nightly.link/Supreeeme/xrizer/actions/runs/$run/xrizer-nightly-release.zip" && \
+    echo "$digest  /tmp/xrizer.zip" | sha256sum -c - && \
+    unzip -q /tmp/xrizer.zip -d /tmp/out && mv /tmp/out/xrizer /xrizer && \
+    echo "nightly-$sha" > /xrizer/bin/version.txt
 
 # Gaming variant: everything above plus extras.
 # Build with --target sinners-gaming (CI publishes it as sinners-gaming-bootc).
@@ -33,7 +50,13 @@ FROM sinners AS sinners-gaming
 
 RUN dnf -y install gamescope mangohud gamemode wivrn
 
-# xrizer (OpenVR -> OpenXR) isn't packaged for Fedora; use the pinned upstream build.
+RUN sed -i \
+      -e "s/^PRETTY_NAME=.*/PRETTY_NAME=\"Sinners $(rpm -E %fedora) (Gaming Build)\"/" \
+      -e 's/^VARIANT=.*/VARIANT="Sinners Gaming"/' \
+      -e 's/^IMAGE_ID=.*/IMAGE_ID="sinners-gaming"/' \
+      /usr/lib/os-release
+
+# xrizer (OpenVR -> OpenXR) isn't packaged for Fedora; use the upstream nightly build.
 COPY --from=xrizer /xrizer /usr/lib/xrizer
 
 RUN dnf clean all && rm -rf /var/cache/libdnf5 /var/log/dnf5.log* && bootc container lint
